@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,10 +14,11 @@ export async function POST(
     }
 
     // Only lenders can fund
-    if (!(session.user as any).role.startsWith("LENDER")) {
+    if (!(session.user as any).role?.startsWith("LENDER")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await context.params;
     const formData = await request.formData();
     const transferMethod = formData.get("transferMethod") as string;
     const notes = formData.get("notes") as string;
@@ -38,7 +39,7 @@ export async function POST(
     }
 
     const application = await prisma.loanApplication.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { lawFirm: true },
     });
 
@@ -56,7 +57,7 @@ export async function POST(
       );
     }
 
-    // In production, this would initiate the actual bank transfer
+    // In production, this would initiate actual bank transfer
     // For now, we'll create a placeholder transaction and mark as funded
 
     const transactionNumber = `TXN-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
@@ -66,7 +67,7 @@ export async function POST(
       await tx.transaction.create({
         data: {
           transactionNumber,
-          loanId: params.id, // Will be connected when loan is created
+          loanId: id, // Will be connected when loan is created
           type: "DISBURSEMENT",
           amount: application.amount,
           status: "COMPLETED", // Simulated completion
@@ -78,7 +79,7 @@ export async function POST(
 
       // Update application status
       await tx.loanApplication.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: "FUNDED",
           fundedAt: new Date(),

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 async function MyLoansPage() {
   // Placeholder - in production, this would fetch from database
-  const loans = [];
+  const loans: Array<{ loanNumber: string; caseName: string; amount: number; status: string; nextPayment: string; id: string }> = [];
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -26,7 +26,7 @@ async function MyLoansPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 2.502-3.718V6.5c0-2.051-1.962-3.718-2.502-3.718H5.836c-1.54 0-2.502 1.667-2.502 3.718v9.282c0 2.051 1.962 3.718 2.502 3.718h1.536v3.282H5.836c-1.54 0-2.502-1.667-2.502-3.718V6.5c0-2.051 1.962-3.718 2.502-3.718h10.856z"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 2.502-3.718V6.5c0-2.051-1.962-3.718-2.502-3.718H5.836c-1.54 0-2.502 1.667-2.502 3.718v9.282c0 2.051 1.962 3.718 2.502 3.718h1.536v3.282H5.836c-1.54 0-2.502 1.667-2.502-3.718V6.5c0-2.051 1.962-3.718 2.502-3.718h10.856z"
               />
             </svg>
             <div>

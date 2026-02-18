@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,8 +14,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await context.params;
     const application = await prisma.loanApplication.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         lawFirm: true,
         bankAccount: true,
@@ -174,20 +175,20 @@ export async function GET(
 
     yPosition += 15;
     const terms = [
-      "1. Borrower agrees to repay the principal amount plus accrued interest at the rate of 7.5% per annum.",
-      "2. Repayment shall be made according to the schedule mutually agreed upon by both parties.",
+      "1. Borrower agrees to repay the principal amount plus accrued interest at rate of 7.5% per annum.",
+      "2. Repayment shall be made according to schedule mutually agreed upon by both parties.",
       "3. Borrower warrants that the loan will be used exclusively for case-related expenses.",
       "4. Lender may require proof of proper use of funds upon reasonable request.",
-      "5. This agreement is governed by the laws of the jurisdiction specified in the application.",
+      "5. This agreement is governed by laws of jurisdiction specified in the application.",
       "6. Borrower agrees to sign all necessary documents to disburse funds.",
       "7. Any default in payment may result in additional fees and legal action.",
     ];
 
     terms.forEach((term) => {
       const lines = doc.splitTextToSize(term, pageWidth - 2 * margin, 10);
-      lines.forEach((line: string) => {
+      (lines as string[]).forEach((line: string) => {
         doc.text(line, margin, yPosition);
-        yPosition += 5;
+        yPosition +=5;
       });
       yPosition += 5;
     });

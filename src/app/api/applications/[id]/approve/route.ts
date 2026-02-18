@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,10 +14,11 @@ export async function POST(
     }
 
     // Only lenders can approve/reject
-    if (!(session.user as any).role.startsWith("LENDER")) {
+    if (!(session.user as any).role?.startsWith("LENDER")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await context.params;
     const formData = await request.formData();
     const action = formData.get("action") as string;
     const notes = formData.get("notes") as string;
@@ -30,7 +31,7 @@ export async function POST(
     }
 
     const application = await prisma.loanApplication.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!application) {
@@ -50,9 +51,9 @@ export async function POST(
     const now = new Date();
 
     if (action === "approve") {
-      // Approve the application
+      // Approve application
       await prisma.loanApplication.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: "APPROVED",
           reviewerId: session.user.id,
@@ -62,9 +63,9 @@ export async function POST(
         },
       });
     } else if (action === "reject") {
-      // Reject the application
+      // Reject application
       await prisma.loanApplication.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: "REJECTED",
           reviewerId: session.user.id,
