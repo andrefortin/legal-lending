@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite doesn't support enums, using String type with validation
+// Role: "LENDER_ADMIN" | "LENDER_REVIEWER" | "LENDER_VIEWER" | "BORROWER_ADMIN" | "BORROWER_USER"
+// LoanStatus: "PENDING_REVIEW" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "FUNDING_IN_PROGRESS" | "FUNDED" | "REPAID" | "DEFAULTED"
+// SignatureStatus: "PENDING" | "SIGNED" | "DECLINED"
+// TransactionType: "DISBURSEMENT" | "REPAYMENT" | "INTEREST" | "FEE"
+// TransactionStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED"
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          String    // Role enum
+  lawFirmId     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lawFirm       LawFirm   @relation(fields: [lawFirmId], references: [id])
+  reviews       LoanApplication[]
+}
+
+model LawFirm {
+  id            String              @id @default(uuid())
+  name          String
+  firmType      String              // 'LENDER' or 'BORROWER'
+  address       String?
+  phone         String?
+  email         String?
+  isLender      Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  users         User[]
+  loanApplications LoanApplication[]
+  loans         Loan[]
+  bankAccounts  BankAccount[]
+}
+
+model LoanApplication {
+  id                String          @id @default(uuid())
+  applicationNumber String          @unique
+  lawFirmId         String
+  reviewerId        String?
+  amount            Float
+  purpose           String
+  caseNumber        String?
+  caseName          String?
+  courtName         String?
+  jurisdiction      String?
+  estimatedDuration String?
+  requestedTerm     String?
+  notes             String?
+  status            String          @default("PENDING_REVIEW") // LoanStatus enum
+  submittedAt       DateTime        @default(now())
+  reviewedAt        DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  fundedAt          DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  lawFirm           LawFirm         @relation(fields: [lawFirmId], references: [id])
+  reviewer          User?           @relation(fields: [reviewerId], references: [id])
+  loan              Loan?
+  documents         Document[]
+  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id])
+  bankAccountId     String?
+}
+
+model Loan {
+  id                    String              @id @default(uuid())
+  loanNumber            String              @unique
+  applicationId         String              @unique
+  principal             Float
+  interestRate          Float               // e.g., 7.5 for 7.5%
+  term                  String              // e.g., "12 months"
+  startDate             DateTime
+  maturityDate          DateTime
+  status                String              @default("APPROVED") // LoanStatus enum
+  amountFunded          Float?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  application           LoanApplication     @relation(fields: [applicationId], references: [id])
+  lawFirm               LawFirm             @relation(fields: [lawFirmId], references: [id])
+  lawFirmId             String
+  documents             Document[]
+  transactions          Transaction[]
+  repaymentSchedule     RepaymentSchedule[]
+  signatures            Signature[]
+}
+
+model Document {
+  id                String          @id @default(uuid())
+  name              String
+  type              String          // 'LOAN_AGREEMENT', 'SIGNED_AGREEMENT', 'APPLICATION', 'OTHER'
+  fileUrl           String?
+  fileSize          Int?
+  mimeType          String?
+  uploadedAt        DateTime        @default(now())
+  loanApplicationId String?
+  loanId            String?
+  loanApplication   LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+  loan              Loan?           @relation(fields: [loanId], references: [id])
+}
+
+model Signature {
+  id                String          @id @default(uuid())
+  documentId        String
+  signerName        String
+  signerEmail       String
+  signerRole        String          // 'BORROWER', 'LENDER', etc.
+  signatureStatus   String          @default("PENDING") // SignatureStatus enum
+  signedAt          DateTime?
+  signatureUrl      String?         // URL to signature image
+  provider          String?         // 'DOCUSIGN', 'HELLOSIGN', 'PANDADOC', 'MANUAL'
+  providerId        String?         // ID from the signature provider
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  loan              Loan            @relation(fields: [loanId], references: [id])
+  loanId            String
+}
+
+model Transaction {
+  id                String            @id @default(uuid())
+  transactionNumber String            @unique
+  loanId            String
+  type              String            // TransactionType enum
+  amount            Float
+  status            String            @default("PENDING") // TransactionStatus enum
+  description       String?
+  externalId        String?           // Bank transaction ID
+  provider          String            // 'CHASE', 'ACH', 'WIRE', etc.
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  completedAt       DateTime?
+  loan              Loan              @relation(fields: [loanId], references: [id])
+}
+
+model RepaymentSchedule {
+  id            String    @id @default(uuid())
+  loanId        String
+  installment   Int
+  dueDate       DateTime
+  amount        Float
+  principal     Float
+  interest      Float
+  isPaid        Boolean   @default(false)
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  loan          Loan      @relation(fields: [loanId], references: [id])
+}
+
+model BankAccount {
+  id            String      @id @default(uuid())
+  lawFirmId     String
+  accountName   String
+  accountNumber String      // Last 4 digits only
+  routingNumber String
+  bankName      String
+  accountType   String      // 'CHECKING', 'SAVINGS', 'TRUST'
+  isDefault     Boolean     @default(false)
+  isTrust       Boolean     @default(false) // IOLTA trust account
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lawFirm       LawFirm     @relation(fields: [lawFirmId], references: [id])
+  loanApplication LoanApplication[]
+}
