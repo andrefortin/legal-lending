@@ -11,6 +11,33 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const handleQuickLogin = async (role: "lender" | "borrower") => {
+    const credentials = role === "lender"
+      ? { email: "lender@lawfirm.com", password: "password123" }
+      : { email: "borrower@lawfirm.com", password: "password123" };
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await signIn("credentials", {
+        ...credentials,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Login failed");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch (error) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -47,7 +74,60 @@ export default function LoginPage() {
             Sign in to your account
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        {/* Quick Login Buttons for Testing */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <button
+            onClick={() => handleQuickLogin("lender")}
+            disabled={loading}
+            className="flex flex-col items-center justify-center px-4 py-3 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              className="h-6 w-6 text-indigo-600 mb-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span className="font-semibold">Lender Login</span>
+            <span className="text-xs text-gray-500">
+              lender@lawfirm.com
+            </span>
+          </button>
+
+          <button
+            onClick={() => handleQuickLogin("borrower")}
+            disabled={loading}
+            className="flex flex-col items-center justify-center px-4 py-3 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              className="h-6 w-6 text-blue-600 mb-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h9m-8 0a2 2 0 11-2 2v3a2 2 0 012 2h8a2 2 0 012-2v-3a2 2 0 00-2-2H7a2 2 0 00-2 2z"
+              />
+            </svg>
+            <span className="font-semibold">Borrower Login</span>
+            <span className="text-xs text-gray-500">
+              borrower@lawfirm.com
+            </span>
+          </button>
+        </div>
+
+        {/* Regular Login Form */}
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
@@ -99,7 +179,7 @@ export default function LoginPage() {
           </div>
 
           <div className="text-sm text-center text-gray-600">
-            <p>Demo credentials:</p>
+            <p className="font-semibold">Full credentials:</p>
             <p className="font-mono text-xs mt-1">
               Lender: lender@lawfirm.com / password123
             </p>
